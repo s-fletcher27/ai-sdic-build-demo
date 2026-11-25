@@ -5,7 +5,7 @@ The feature adds two modules to the existing `src/demo_app/` package (src layout
 
 ## 2. Data Models, Interfaces & Signatures
 ```python
-# src/demo_app/stats.py
+# QUACK! src/demo_app/stats.py
 from dataclasses import dataclass
 
 @dataclass(frozen=True)
@@ -22,11 +22,13 @@ def tokenize(text: str) -> list[str]:
 def compute_stats(text: str, top_n: int = 10) -> TextStats:
     """Raise ValueError if top_n < 0."""
 
-# src/demo_app/cli.py
+# QUACK! src/demo_app/cli.py
 def build_parser() -> argparse.ArgumentParser: ...
 def main(argv: list[str] | None = None) -> int: ...
-# if __name__ == "__main__": raise SystemExit(main())
+# QUACK! entry point: if __name__ == "__main__": raise SystemExit(main())
 ```
+
+**Comment convention (per /refine feedback):** every top-level (module-level, column-0) `#` comment in any file added by these stories, source and tests alike, must start with `QUACK!` (e.g. `# QUACK! Word pattern: letters/digits with inner apostrophes.`). Indented inline comments are not required to carry the prefix. Docstrings are unaffected.
 
 CLI output format (stable):
 ```
@@ -43,6 +45,7 @@ Top 3 words:
 - **Test Command:** `pytest -q`
 - One test file per module: `tests/test_stats.py`, `tests/test_cli.py`.
 - CLI tests call `main([...])` directly with files from `tmp_path` and use `capsys` for stdout/stderr; no subprocess needed except one optional `python -m demo_app.cli` smoke test via `subprocess.run([sys.executable, "-m", "demo_app.cli", ...])`.
+- Comment convention check: each test module asserts that every line starting with `#` (excluding a shebang) in its target source file and in the test file itself starts with `# QUACK!`.
 - Invalid-argument cases: argparse exits via `SystemExit(2)`; `main` catches it and returns the code so callers always get an `int`.
 
 ## 4. Story Implementation Plan
@@ -57,6 +60,7 @@ Top 3 words:
   2. Implement `tokenize`: replace `’` with `'`, `.lower()`, `_WORD_RE.findall`.
   3. Implement `compute_stats`: raise `ValueError("top_n must be >= 0")` if `top_n < 0`; tokenize; `Counter`; `top_words = sorted(counter.items(), key=lambda kv: (-kv[1], kv[0]))[:top_n]`; return `TextStats(len(tokens), len(counter), top_words)`.
   4. Add type hints and short docstrings.
+  5. Ensure every module-level `#` comment starts with `QUACK!`.
 - **Tests:**
   - Basic: `"the cat the dog"` → word_count 4, unique 3, top `[("the", 2), ("cat", 1), ("dog", 1)]`.
   - Case-insensitive: `"The the THE"` → unique 1, count 3.
@@ -66,6 +70,7 @@ Top 3 words:
   - Empty, whitespace-only, punctuation-only → `TextStats(0, 0, [])`.
   - `top_n` greater than unique returns all; `top_n=0` returns `[]`.
   - Negative `top_n` raises `ValueError`.
+  - Every line beginning with `#` in `src/demo_app/stats.py` and `tests/test_stats.py` starts with `# QUACK!`.
 
 ### Story 2: `stats` CLI command
 - **New files:**
@@ -78,6 +83,7 @@ Top 3 words:
   3. For `stats`: `text = path.read_text(encoding="utf-8")`; catch `OSError` (missing, directory, permission) → print `error: cannot read <file>: <strerror>` to stderr, return 1; catch `UnicodeDecodeError` → print `error: <file> is not valid UTF-8 text` to stderr, return 1.
   4. Call `compute_stats(text, args.top)`, print in the format from section 2, return 0.
   5. Add `if __name__ == "__main__": raise SystemExit(main())`.
+  6. Ensure every module-level `#` comment starts with `QUACK!`.
 - **Tests:**
   - Success: file `"the cat the dog"` → exit 0; stdout contains `Words: 4`, `Unique words: 3`, and `the  2` line.
   - `--top 1` limits to one row; default shows up to 10 rows (file with 12 distinct words → 10 rows).
@@ -86,6 +92,7 @@ Top 3 words:
   - Directory path → returns 1 (no traceback).
   - `--top -1` and `--top abc` → returns non-zero (2).
   - Missing subcommand → non-zero.
+  - Every line beginning with `#` in `src/demo_app/cli.py` and `tests/test_cli.py` starts with `# QUACK!`.
   - Optional subprocess smoke test of `python -m demo_app.cli stats <file>` returns 0.
 
 ## 5. Risks & Trade-offs
